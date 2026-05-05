@@ -1,20 +1,36 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect } from 'react'
+import { NavigationContainer } from '@react-navigation/native'
+import BottomTabs from './src/navigation/BottomTabs'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { useStandStore } from './src/store/useStandStore'
+import { requestPermissions, scheduleReminder } from './src/services/notifications'
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+  useEffect(() => {
+    const setup = async () => {
+      const store = useStandStore.getState()
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+      // 1. Load persisted data first
+      await store.init()
+
+      // 2. Request permission
+      const granted = await requestPermissions()
+      if (!granted) return
+
+      // 3. Use saved frequency (NOT hardcoded)
+      const { frequency } = useStandStore.getState()
+
+      await scheduleReminder(frequency)
+    }
+
+    setup()
+  }, [])
+
+  return (
+   <SafeAreaProvider> {/* ✅ ADD THIS */}
+      <NavigationContainer>
+        <BottomTabs />
+      </NavigationContainer>
+    </SafeAreaProvider>
+  )
+}
