@@ -11,12 +11,12 @@ export const getLast7Days = () => {
 }
 
 export const formatHistoryForChart = (
-  history: Record<string, number>
+  history: Record<string, string[]>
 ) => {
   const days = getLast7Days()
 
   return days.map((date) => ({
     date,
-    value: history[date] || 0,
+    value: (history[date] || []).length,
   }))
 }

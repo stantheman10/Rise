@@ -7,10 +7,10 @@ export type Badge = {
 
 export const getBadges = (
   streak: number,
-  history: Record<string, number>
+  history: Record<string, string[]>
 ): Badge[] => {
   const totalStands = Object.values(history).reduce(
-    (sum, val) => sum + val,
+    (sum, val) => sum + val.length,
     0
   )
 

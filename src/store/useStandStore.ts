@@ -9,7 +9,7 @@ type StandState = {
   frequency: number
   streak: number
   lastActiveDate: string | null
-  history: Record<string, number>
+  history: Record<string, string[]> // Changed to array of timestamps
 
   init: () => Promise<void>
   logStand: () => Promise<void>
@@ -33,13 +33,26 @@ export const useStandStore = create<StandState>((set, get) => ({
       const today = getTodayDate()
       const isSameDay = data.lastActiveDate === today
 
+      // Handle migration from old format (number) to new format (string[])
+      let migratedHistory = data.history || {}
+      if (typeof Object.values(migratedHistory)[0] === 'number') {
+        // Old format: convert counts to arrays with current timestamp
+        const now = new Date().toISOString()
+        migratedHistory = Object.fromEntries(
+          Object.entries(migratedHistory).map(([date, count]) => [
+            date,
+            Array(count as number).fill(now)
+          ])
+        )
+      }
+
       const updatedState = {
         todayCount: isSameDay ? data.todayCount : 0,
         dailyGoal: data.dailyGoal ?? 12,
         frequency: data.frequency ?? 45,
         streak: data.streak ?? 0,
         lastActiveDate: data.lastActiveDate ?? null,
-        history: data.history || {},
+        history: migratedHistory,
       }
 
       set(updatedState)
@@ -51,6 +64,7 @@ export const useStandStore = create<StandState>((set, get) => ({
   logStand: async () => {
     const state = get()
     const today = getTodayDate()
+    const now = new Date().toISOString()
 
     const newStreak = calculateStreak(
       state.lastActiveDate,
@@ -59,7 +73,7 @@ export const useStandStore = create<StandState>((set, get) => ({
 
     const updatedHistory = {
       ...state.history,
-      [today]: (state.history[today] || 0) + 1,
+      [today]: [...(state.history[today] || []), now],
     }
 
     const newState = {

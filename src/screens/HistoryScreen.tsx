@@ -1,5 +1,5 @@
-import React from 'react'
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
 import { useStandStore } from '../store/useStandStore'
 import { formatHistoryForChart } from '../utils/history'
 import Bar from '../components/Bar'
@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function HistoryScreen() {
   const { history, streak } = useStandStore()
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   const data = formatHistoryForChart(history)
 
@@ -16,6 +17,12 @@ export default function HistoryScreen() {
   const average = (total / 7).toFixed(1)
 
   const today = new Date().toISOString().split('T')[0]
+
+  // Get stands for selected day
+  const selectedDayStands = selectedDay ? (history[selectedDay] || []) : []
+  const sortedStands = selectedDayStands
+    .map(timestamp => new Date(timestamp))
+    .sort((a, b) => b.getTime() - a.getTime()) // Most recent first
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0F1E' }}>
@@ -32,18 +39,24 @@ export default function HistoryScreen() {
         <View style={styles.chart}>
           {data.map(item => {
             const isToday = item.date === today
+            const isSelected = item.date === selectedDay
 
             return (
-              <View key={item.date} style={styles.barWrapper}>
+              <Pressable
+                key={item.date}
+                style={styles.barWrapper}
+                onPress={() => setSelectedDay(item.date === selectedDay ? null : item.date)}
+              >
                 <Bar
                   value={item.value}
                   maxValue={maxValue}
                   isToday={isToday}
                 />
-                <Text style={styles.day}>
+                <Text style={[styles.day, isSelected && styles.selectedDay]}>
                   {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' })}
                 </Text>
-              </View>
+                {isSelected && <View style={styles.selectionIndicator} />}
+              </Pressable>
             )
           })}
         </View>
@@ -70,18 +83,35 @@ export default function HistoryScreen() {
         </View>
       </View>
 
-      {/* Recent Activity (static for now) */}
-      <Text style={styles.sectionTitle}>Recent Stands</Text>
+      {/* Selected Day Stands */}
+      {selectedDay && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>
+            Stands on {new Date(selectedDay).toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'short',
+              day: 'numeric'
+            })}
+          </Text>
 
-      <View style={styles.activityCard}>
-        <Text style={styles.activityText}>Morning Stretch</Text>
-        <Text style={styles.activityTime}>Today • 08:45 AM</Text>
-      </View>
-
-      <View style={styles.activityCard}>
-        <Text style={styles.activityText}>Desk Break</Text>
-        <Text style={styles.activityTime}>Today • 11:15 AM</Text>
-      </View>
+          {sortedStands.length === 0 ? (
+            <Text style={styles.noStandsText}>No stands recorded for this day</Text>
+          ) : (
+            sortedStands.map((date, index) => (
+              <View key={index} style={styles.standItem}>
+                <Text style={styles.standText}>Stand #{sortedStands.length - index}</Text>
+                <Text style={styles.standTime}>
+                  {date.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+      )}
 
     </ScrollView>
     </SafeAreaView>
@@ -130,6 +160,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
+  selectedDay: {
+    color: '#00E5FF',
+    fontWeight: '700',
+  },
+
+  selectionIndicator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#00E5FF',
+    marginTop: 4,
+  },
+
   totalRow: {
     marginTop: 20,
     flexDirection: 'row',
@@ -176,22 +219,35 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: '#FFF',
     fontSize: 20,
-    marginBottom: 10,
+    marginBottom: 15,
+    fontWeight: '600',
   },
 
-  activityCard: {
-    backgroundColor: '#111827',
-    borderRadius: 16,
-    padding: 15,
-    marginBottom: 10,
+  standItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#1A2A3A',
+    borderRadius: 8,
+    marginBottom: 8,
   },
 
-  activityText: {
+  standText: {
     color: '#FFF',
+    fontSize: 16,
   },
 
-  activityTime: {
+  standTime: {
     color: '#7DD3FC',
-    fontSize: 12,
+    fontSize: 14,
+  },
+
+  noStandsText: {
+    color: '#7DD3FC',
+    fontSize: 16,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 })
