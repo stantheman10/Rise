@@ -32,8 +32,11 @@ export default function FocusScreen() {
   }));
 
   // 🚀 Handle press
-  const handlePress = () => {
-    logStand();
+  const handlePress = async () => {
+    await logStand();
+
+    //reset timer
+
 
     // number pop
     scale.value = 1.2;

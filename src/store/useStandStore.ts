@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { saveData, loadData } from '../services/storage'
 import { getTodayDate, calculateStreak } from '../utils/streak'
+import { updateReminder } from '../services/notifications'
 
 type StandState = {
   todayCount: number
@@ -11,7 +12,7 @@ type StandState = {
   history: Record<string, number>
 
   init: () => Promise<void>
-  logStand: () => void
+  logStand: () => Promise<void>
   setDailyGoal: (goal: number) => void
   setFrequency: (value: number) => void
 }
@@ -47,7 +48,7 @@ export const useStandStore = create<StandState>((set, get) => ({
   },
 
   // 🚀 LOG STAND
-  logStand: () => {
+  logStand: async () => {
     const state = get()
     const today = getTodayDate()
 
@@ -71,6 +72,9 @@ export const useStandStore = create<StandState>((set, get) => ({
 
     set(newState)
     saveData(newState)
+
+    // Reset the notification timer
+    await updateReminder(state.frequency)
   },
 
   // 🎯 UPDATE DAILY GOAL
